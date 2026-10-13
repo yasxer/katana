@@ -251,11 +251,14 @@ function wrapTexture() {
 }
 
 export interface Katana {
-  /** carries the pose of the whole katana */
+  /** carries the pose of the whole katana (position, scale, tilt) */
   root: THREE.Group;
+  /** blade, guard and handle: rolls around its own axis inside `root` */
   sword: THREE.Group;
-  /** child of `root`: its transform is relative to the sword */
+  /** scabbard, child of `root`: its transform is relative to the un-rolled sword */
   saya: THREE.Group;
+  /** faint copies of the scabbard, used as a motion trail while it tumbles */
+  ghosts: { group: THREE.Group; setOpacity(alpha: number): void }[];
   lacquer: THREE.MeshPhysicalMaterial;
 }
 
@@ -278,8 +281,7 @@ export function createKatana(): Katana {
   const saya = new THREE.Group(); // scabbard
   const root = new THREE.Group();
   root.add(sword, saya);
-  // roll first (around the blade's own axis), then yaw, then tilt on screen
-  root.rotation.order = 'ZYX';
+  root.rotation.order = 'ZYX'; // yaw, then tilt on screen
 
   // ellipse band around the x axis
   const band = (x: number, len: number, ry: number, rz: number, mat: THREE.Material, parent: THREE.Group = sword, y = 0) => {
@@ -374,5 +376,28 @@ export function createKatana(): Katana {
   const tipX = -(BLADE_LEN + 0.12);
   band(tipX, 0.22, SRY * 0.86 + 0.01, SRZ * 0.86 + 0.01, gold, saya, curveY(tipX));
 
-  return { root, sword, saya, lacquer };
+  const ghosts = [0, 1, 2].map(() => {
+    const group = saya.clone(true);
+    const materials: THREE.Material[] = [];
+    group.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const material = (object.material as THREE.Material).clone();
+      material.transparent = true;
+      material.depthWrite = false;
+      material.opacity = 0;
+      object.material = material;
+      materials.push(material);
+    });
+    group.visible = false;
+    root.add(group);
+    return {
+      group,
+      setOpacity(alpha: number) {
+        group.visible = alpha > 0.004;
+        for (const material of materials) material.opacity = alpha;
+      },
+    };
+  });
+
+  return { root, sword, saya, ghosts, lacquer };
 }

@@ -1,17 +1,18 @@
-.stage { height: calc(var(--vh) * 780); position: relative; background: var(--navy); }
+.stage { height: calc(var(--vh) * 920); position: relative; background: var(--navy); }
 .pin { position: sticky; top: 0; height: calc(var(--vh) * 100); overflow: hidden; }
 .stage .pin { background: radial-gradient(120% 90% at 60% 40%, #1c2439 0%, var(--navy) 55%, #111727 100%); }
 .stage .pin > * { position: absolute; }
 
 .ink-tree { z-index: 1; left: 27vw; top: 50%; width: min(52vw, calc(var(--vh) * 96)); translate: 0 -50%; mix-blend-mode: screen; opacity: .8; filter: contrast(1.15) brightness(1.1); pointer-events: none; -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent); mask-image: radial-gradient(closest-side, #000 70%, transparent); }
 .mosaic { z-index: 2; inset: 0; width: 100%; height: 100%; }
-.gl { z-index: 3; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.stage .gl { z-index: 3; }
 .wipe { z-index: 9; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 .hero { z-index: 4; inset: 0; pointer-events: none; }
 .hero > * { position: absolute; pointer-events: auto; }
+.hero-title-stack { left: var(--col); top: clamp(64px, calc(var(--vh) * 9.5), 120px); }
 .hero-title {
-  left: var(--col); top: clamp(64px, calc(var(--vh) * 9.5), 120px);
+  margin: 0;
   font-size: clamp(36px, 5.5vw, 112px); font-weight: 500; line-height: .88; letter-spacing: -.04em;
 }
 .ln { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
@@ -20,12 +21,18 @@
 
 .hero-chip { left: var(--col); top: calc(var(--vh) * 45); display: grid; gap: 8px; }
 .chip-card { width: clamp(120px, 15.5vw, 250px); aspect-ratio: 1.9; border: 1px solid rgba(255, 255, 255, .45); border-radius: 10px; background: rgba(21, 28, 46, .35); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); display: grid; place-items: center; gap: 0; align-content: center; overflow: hidden; }
-.chip-card img { width: 34%; aspect-ratio: 1.2; object-fit: cover; object-position: 50% 42%; border-radius: 4px; }
-.chip-card span { font-size: clamp(10px, .8vw, 13px); margin-top: 6px; }
+.chip-slide { grid-area: 1 / 1; width: 100%; margin: 0; display: grid; justify-items: center; opacity: 0; animation: chip 7.2s infinite both; }
+.chip-slide img { width: 34%; aspect-ratio: 1.2; object-fit: cover; object-position: 50% 42%; border-radius: 4px; }
+.chip-slide figcaption { font-size: clamp(10px, .8vw, 13px); margin-top: 6px; }
+@keyframes chip {
+  0% { opacity: 0; transform: translateY(10px); filter: blur(6px); }
+  5%, 31% { opacity: 1; transform: none; filter: none; }
+  36%, 100% { opacity: 0; transform: translateY(-10px); filter: blur(6px); }
+}
 
+.hero-word-stack { left: calc(var(--pad) * .6); bottom: calc(var(--vh) * 6.5); font-size: 24vw; /* fitted to the viewport in Hero.tsx */ pointer-events: none; }
 .hero-word {
-  left: calc(var(--pad) * .6); bottom: calc(var(--vh) * 6.5);
-  font-size: 24vw; /* fitted to the viewport in Hero.tsx */ font-weight: 400; line-height: .78; letter-spacing: -.045em; white-space: nowrap;
+  font-weight: 400; line-height: .78; letter-spacing: -.045em; white-space: nowrap;
   color: var(--pale); opacity: .6; pointer-events: none;
 }
 .hero-word sup { font-size: .16em; letter-spacing: 0; vertical-align: 3.2em; margin-left: .2em; }
@@ -50,9 +57,18 @@
 .dialog-card { width: clamp(46px, 4.6vw, 72px); }
 .dialog-card img { width: 100%; aspect-ratio: .78; object-fit: cover; object-position: 50% 12%; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .5); }
 .dialog-card figcaption { font-size: 6px; text-align: center; margin-top: 4px; opacity: .7; }
-.dialog-text { font-size: clamp(11px, .95vw, 15px); line-height: 1.4; min-height: 2.8em; max-width: 52ch; color: var(--fg); }
+.dialog-lines { display: grid; }
+.dialog-text { grid-area: 1 / 1; font-size: clamp(11px, .95vw, 15px); line-height: 1.4; min-height: 2.8em; max-width: 52ch; color: var(--fg); }
+.dialog-text i.mark.on { background: rgba(232, 54, 44, .55); box-shadow: 0 0 0 2px rgba(232, 54, 44, .55); }
 .dialog-text i { font-style: normal; opacity: 0; }
 .dialog-text i.on { opacity: 1; }
 .dialog-bar { height: 1px; background: rgba(255, 255, 255, .25); margin: 10px 0 14px; }
 .dialog-bar i { display: block; height: 3px; margin-top: -1px; width: 100%; background: var(--fg); transform-origin: 0 50%; transform: scaleX(0); }
 .dialog-skip { font-size: clamp(10px, .8vw, 13px); font-weight: 600; padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, .12); margin-bottom: 10px; }
+
+/* echoes that trail behind the hero type as it leaves */
+.hero-echo { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; will-change: transform, opacity; }
+.hero-title-stack > h1, .hero-word-stack > .hero-word { will-change: transform; }
+
+/* the two lines that close the scene, in ink over the white wipe */
+.line.after { z-index: 10; color: var(--ink); }

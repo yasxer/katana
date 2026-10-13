@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { SplitChars } from '../../components/SplitChars';
+import { queryChars, setChars } from '../../lib/chars';
 import { clamp, easeOut, seg, smooth } from '../../lib/math';
 import { inView, pinProgress, useBounds, useFrame } from '../../scroll/ScrollProvider';
 import './craft.css';
@@ -14,9 +16,12 @@ const PRINCIPLES = [
 
 interface Rig {
   lines: HTMLElement[];
-  words: HTMLElement[];
+  words: { el: HTMLElement; chars: HTMLElement[] }[];
   cols: HTMLElement[];
 }
+
+/** The footer slides up over the last screen of this section, so everything plays out before that. */
+const PLAYS_UNTIL = 0.74;
 
 /** 03 · Principles — four words resolve out of blur, one per principle. */
 export function Craft() {
@@ -27,7 +32,12 @@ export function Craft() {
   useEffect(() => {
     const el = root.current!;
     const all = (selector: string) => Array.from(el.querySelectorAll<HTMLElement>(selector));
-    rig.current = { lines: all('.craft-title .ln > span'), words: all('.craft-big span'), cols: all('.craft-cols li') };
+    rig.current = {
+      lines: all('.craft-title .ln > span'),
+      words: all('.craft-big > span').map((word) => ({ el: word, chars: queryChars(word) })),
+      cols: all('.craft-cols li'),
+    };
+    rig.current.words.forEach((word) => setChars(word.chars, 0));
     return () => {
       rig.current = null;
     };
@@ -37,7 +47,7 @@ export function Craft() {
     const r = rig.current;
     const b = bounds.current;
     if (!r || !inView(b, y, vh)) return;
-    const c = pinProgress(b, y, vh);
+    const c = clamp(pinProgress(b, y, vh) / PLAYS_UNTIL);
     const entered = clamp((y + vh - b.top) / vh); // 0 → 1 while the section scrolls into view
 
     r.lines.forEach((line, i) => {
@@ -47,13 +57,12 @@ export function Craft() {
 
     const n = r.words.length;
     r.words.forEach((word, i) => {
+      // each word sharpens letter by letter, then dissolves the same way
       const local = c * n - i;
-      const a = smooth(seg(local, i === 0 ? -0.4 : 0, 0.32));
-      const out = smooth(seg(local, 0.72, 1));
-      const v = a * (1 - out);
-      word.style.opacity = String(v);
-      word.style.filter = v > 0.99 ? 'none' : `blur(${((1 - v) * 46).toFixed(1)}px)`;
-      word.style.transform = `scale(${0.86 + a * 0.14 + out * 0.16})`;
+      const a = seg(local, i === 0 ? -0.3 : 0.02, 0.42);
+      const out = i === n - 1 ? 0 : seg(local, 0.7, 1);
+      setChars(word.chars, a, out, 34, 4);
+      word.el.style.transform = `scale(${0.9 + smooth(a) * 0.1 + smooth(out) * 0.08})`;
     });
 
     const active = Math.min(n - 1, Math.floor(c * n));
@@ -80,7 +89,9 @@ export function Craft() {
 
         <div className="craft-big" aria-hidden="true">
           {WORDS.map((word) => (
-            <span key={word}>{word}</span>
+            <span key={word}>
+              <SplitChars text={word} />
+            </span>
           ))}
         </div>
 

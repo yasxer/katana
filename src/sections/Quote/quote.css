@@ -1,0 +1,7 @@
+.quote { position: relative; height: calc(var(--vh) * 120); background: var(--paper); color: var(--ink); display: grid; place-items: center; overflow: clip; }
+.quote-text { max-width: 15em; text-align: center; font-size: clamp(20px, 2.5vw, 46px); line-height: 1.08; letter-spacing: -.03em; }
+.quote-text span { opacity: .22; will-change: opacity; }
+.quote-seal { position: absolute; left: 50%; top: 20%; width: clamp(30px, 3.4vw, 56px); aspect-ratio: 1.1547; margin-left: calc(clamp(30px, 3.4vw, 56px) / -2); background: var(--red); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); will-change: transform; }
+.quote-gem { position: absolute; left: 58%; top: 64%; width: clamp(64px, 7vw, 120px); aspect-ratio: 1; overflow: hidden; background: #0b0e16; box-shadow: 0 30px 50px -24px rgba(16, 18, 22, .5); will-change: transform; }
+.quote-gem img { width: 150%; max-width: none; margin: -25%; transform: rotate(-45deg); }
+.quote-note { position: absolute; left: 66%; top: 62%; color: rgba(16, 18, 22, .6); }

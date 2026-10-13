@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { Vector3 } from 'three';
 import { images } from '../../assets/images';
 import { SplitChars } from '../../components/SplitChars';
 import { queryChars, setChars } from '../../lib/chars';
@@ -7,31 +6,40 @@ import { clamp, easeOut, lerp, seg, smooth } from '../../lib/math';
 import { Mosaic } from '../../lib/Mosaic';
 import { viewportHeight } from '../../lib/viewport';
 import { pinProgress, useBounds, useFrame, useScroll } from '../../scroll/ScrollProvider';
-import { createScene, type KatanaScene } from '../../three/createScene';
-import { DRAW_DISTANCE, SORI_RADIUS, TOTAL_LEN } from '../../three/katana';
+import { useKatana } from '../../three/KatanaProvider';
+import { animateGlow, placeKatana, placeSaya } from '../../three/rig';
 import { Dialog } from './Dialog';
 import { Hero } from './Hero';
-import { NEXT_STOP, PHASE, THEME_FLIP, katanaPose } from './timeline';
+import { NEXT_STOP, PHASE, THEME_FLIP, idleWeight, stagePose } from './timeline';
 import './stage.css';
 
+const OWNER = 'stage';
 const INTRO_MS = 2200;
 const PAPER = '#efefec';
-const glowAnchor = new Vector3();
+const TURN = Math.PI * 2;
+const LINES = ['Be Still', 'Draw the Blade', 'The Steel Awakens'];
+/** Shown in ink over the white wipe that closes the scene. */
+const AFTER = ['Breathe in…', 'And look closer.'];
 
 /** Everything the frame loop touches, collected once after mount. */
 interface Rig {
-  scene: KatanaScene;
+  pin: HTMLElement;
   mosaic: Mosaic;
   wipe: Mosaic;
   painting: HTMLImageElement;
   inkTree: HTMLElement;
   heroLines: HTMLElement[];
-  heroFade: HTMLElement[];
+  title: HTMLElement;
+  titleEchoes: HTMLElement[];
+  word: HTMLElement;
+  wordEchoes: HTMLElement[];
   wordChars: HTMLElement[];
-  line1: HTMLElement[];
-  line2: HTMLElement[];
+  heroFade: HTMLElement[];
+  bubble: HTMLElement[];
+  lines: HTMLElement[][];
+  after: HTMLElement[][];
   dialog: HTMLElement;
-  dialogChars: HTMLElement[];
+  says: { el: HTMLElement; chars: HTMLElement[] }[];
   dialogBar: HTMLElement;
 }
 
@@ -40,9 +48,17 @@ export function Stage({ ready }: { ready: boolean }) {
   const root = useRef<HTMLElement>(null);
   const bounds = useBounds(root);
   const { scrollTo } = useScroll();
+  const director = useKatana();
   const rig = useRef<Rig | null>(null);
   const introStart = useRef(0);
-  const live = useRef({ progress: 0, typed: -1, mouse: { x: 0, y: 0, sx: 0, sy: 0 } });
+  const live = useRef({
+    progress: 0,
+    velocity: 0,
+    idle: 0,
+    time: 0,
+    typed: [-1, -1],
+    mouse: { x: 0, y: 0, sx: 0, sy: 0 },
+  });
 
   useEffect(() => {
     if (ready) introStart.current = performance.now() + 250;
@@ -55,84 +71,111 @@ export function Stage({ ready }: { ready: boolean }) {
 
     const painting = new Image();
     painting.src = images.painting;
-    const scene = createScene(one<HTMLCanvasElement>('.gl'));
     const mosaic = new Mosaic(one<HTMLCanvasElement>('.mosaic'));
     const wipe = new Mosaic(one<HTMLCanvasElement>('.wipe'));
 
     rig.current = {
-      scene,
+      pin: one('.pin'),
       mosaic,
       wipe,
       painting,
       inkTree: one('.ink-tree'),
-      heroLines: all('.hero-title .ln > span'),
-      heroFade: all('.hero-chip, .hero-meta, .bubble, .bubble-avatar'),
-      wordChars: queryChars(one('.hero-word')),
-      line1: queryChars(one('.line-1')),
-      line2: queryChars(one('.line-2')),
+      heroLines: all('.hero-title-stack > h1 .ln > span'),
+      title: one('.hero-title-stack > h1'),
+      titleEchoes: all('.hero-title-stack > .hero-echo'),
+      word: one('.hero-word-stack > .hero-word:not(.hero-echo)'),
+      wordEchoes: all('.hero-word-stack > .hero-echo'),
+      wordChars: queryChars(one('.hero-word-stack > .hero-word:not(.hero-echo)')),
+      heroFade: all('.hero-chip, .hero-meta'),
+      bubble: all('.bubble, .bubble-avatar'),
+      lines: all('.line.mid').map(queryChars),
+      after: all('.line.after').map(queryChars),
       dialog: one('.dialog'),
-      dialogChars: all('.dialog-text i'),
+      says: all('.dialog-text').map((say) => ({ el: say, chars: Array.from(say.querySelectorAll<HTMLElement>('i')) })),
       dialogBar: one('.dialog-bar i'),
     };
 
-    const onResize = () => {
-      scene.resize();
+    // follow the pinned frame itself: it only changes size on a real resize,
+    // not when a phone's address bar moves
+    const resizeObserver = new ResizeObserver(() => {
       mosaic.resize();
       wipe.resize();
-    };
+    });
+    resizeObserver.observe(one('.pin'));
     const onPointer = (event: PointerEvent) => {
       live.current.mouse.x = event.clientX / window.innerWidth - 0.5;
       live.current.mouse.y = event.clientY / window.innerHeight - 0.5;
     };
-    // follow the pinned frame itself: it only changes size on a real resize,
-    // not when a phone's address bar moves
-    const resizeObserver = new ResizeObserver(onResize);
-    resizeObserver.observe(one('.pin'));
     window.addEventListener('pointermove', onPointer);
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('pointermove', onPointer);
       rig.current = null;
-      scene.dispose();
     };
   }, []);
 
   useFrame(({ time, y, vh }) => {
     const r = rig.current;
+    const k = director.current;
     const b = bounds.current;
-    if (!r || y >= b.top + b.height) return;
+    if (!r || !k) return;
+    if (y >= b.top + b.height) {
+      k.release(OWNER);
+      return;
+    }
 
+    const state = live.current;
+    const dt = Math.min(64, time - (state.time || time));
+    state.time = time;
     const p = pinProgress(b, y, vh);
     const at = (range: readonly [number, number]) => seg(p, range[0], range[1]);
-    const { mouse } = live.current;
+    const { mouse } = state;
     mouse.sx = lerp(mouse.sx, mouse.x, 0.06);
     mouse.sy = lerp(mouse.sy, mouse.y, 0.06);
 
     const intro = introStart.current ? clamp((time - introStart.current) / INTRO_MS) : 0;
     const introE = easeOut(intro);
     const out = at(PHASE.heroOut);
-    const outE = smooth(out);
 
-    // ── hero typography
-    const lineY = (1 - introE) * 125 - outE * 125;
+    // ── hero: the type rises out of frame, trailed by fading echoes of itself
     r.heroLines.forEach((line, i) => {
-      line.style.transform = `translate3d(0,${lineY + (1 - introE) * i * 30}%,0)`;
+      line.style.transform = `translate3d(0,${(1 - introE) * (125 + i * 30)}%,0)`;
     });
-    setChars(r.wordChars, seg(intro, 0.15, 1), out, 22);
+    const echo = Math.sin(Math.PI * out);
+    const rise = (lag: number) => smooth(clamp((out - lag) / (1 - lag)));
+    r.title.style.transform = `translate3d(0,${-rise(0) * vh * 0.5}px,0)`;
+    r.titleEchoes.forEach((ghost, i) => {
+      ghost.style.transform = `translate3d(0,${-rise((i + 1) * 0.07) * vh * 0.5}px,0)`;
+      ghost.style.opacity = String(echo * (0.5 - i * 0.14));
+    });
+    setChars(r.wordChars, seg(intro, 0.15, 1), 0, 22);
+    r.word.style.transform = `translate3d(0,${-rise(0) * vh}px,0)`;
+    r.wordEchoes.forEach((ghost, i) => {
+      ghost.style.transform = `translate3d(0,${-rise((i + 1) * 0.06) * vh}px,0)`;
+      ghost.style.opacity = String(echo * (0.42 - i * 0.11));
+    });
+
     const uiIn = seg(intro, 0.5, 1);
-    const uiFade = clamp(uiIn - out * 1.6);
-    for (const item of r.heroFade) {
-      item.style.opacity = String(uiFade);
-      item.style.transform = `translate3d(0,${(1 - uiIn) * 16 - out * 24}px,0)`;
-      item.style.pointerEvents = uiFade < 0.5 ? 'none' : '';
-    }
-    r.inkTree.style.opacity = String(0.8 * introE * (1 - outE));
-    r.inkTree.style.transform = `translate3d(${mouse.sx * -18}px,${mouse.sy * -12}px,0) scale(${1 + out * 0.18 + (1 - introE) * 0.08})`;
+    const fade = (items: HTMLElement[], gone: number, lift: number) => {
+      const alpha = clamp(uiIn - gone * 1.6);
+      for (const item of items) {
+        item.style.opacity = String(alpha);
+        item.style.transform = `translate3d(0,${(1 - uiIn) * 16 - gone * lift}px,0)`;
+        item.style.pointerEvents = alpha < 0.5 ? 'none' : '';
+      }
+    };
+    fade(r.heroFade, out, vh * 0.3);
+    fade(r.bubble, at(PHASE.bubbleOut), 24); // the greeting lingers a moment longer
+    r.inkTree.style.opacity = String(0.8 * introE * (1 - smooth(out)));
+    r.inkTree.style.transform = `translate3d(${mouse.sx * -18}px,${mouse.sy * -12 - out * vh * 0.2}px,0) scale(${1 + out * 0.18 + (1 - introE) * 0.08})`;
     document.documentElement.classList.toggle('past-hero', p > 0.07);
 
-    // ── centre lines
-    setChars(r.line1, at(PHASE.line1In), at(PHASE.line1Out));
-    setChars(r.line2, at(PHASE.line2In), at(PHASE.line2Out));
+    // ── centre lines, then the two that close the scene
+    setChars(r.lines[0], at(PHASE.line1In), at(PHASE.line1Out));
+    setChars(r.lines[1], at(PHASE.line2In), at(PHASE.line2Out));
+    setChars(r.lines[2], at(PHASE.line3In), at(PHASE.line3Out));
+    setChars(r.after[0], at(PHASE.after1In), at(PHASE.after1Out));
+    setChars(r.after[1], at(PHASE.after2In));
 
     // ── painting, dialogue, exit wipe
     r.mosaic.drawImage(r.painting, at(PHASE.paintingIn), Math.round(smooth(at(PHASE.paintingPan)) * 500) / 500);
@@ -141,60 +184,55 @@ export function Stage({ ready }: { ready: boolean }) {
     r.dialog.style.opacity = String(dialogAlpha);
     r.dialog.style.transform = `translate3d(0,${(1 - smooth(dialogIn)) * 20}px,0)`;
     r.dialog.style.pointerEvents = dialogAlpha > 0.5 ? '' : 'none';
-    const typing = at(PHASE.dialogType);
-    const typed = Math.round(typing * r.dialogChars.length);
-    if (typed !== live.current.typed) {
-      live.current.typed = typed;
-      r.dialogChars.forEach((char, i) => char.classList.toggle('on', i < typed));
-      r.dialogBar.style.transform = `scaleX(${typing})`;
-    }
+    const typing = [at(PHASE.say1Type), at(PHASE.say2Type)];
+    r.says.forEach((say, n) => {
+      const typed = Math.round(typing[n] * say.chars.length);
+      if (typed !== state.typed[n]) {
+        state.typed[n] = typed;
+        say.chars.forEach((char, i) => char.classList.toggle('on', i < typed));
+      }
+    });
+    r.says[0].el.style.opacity = String(1 - at(PHASE.say1Out));
+    r.dialogBar.style.transform = `scaleX(${seg(p, PHASE.say1Type[0], PHASE.say2Type[1])})`;
     r.wipe.drawFill(PAPER, Math.round(at(PHASE.wipe) * 400) / 400);
 
     // ── katana
-    live.current.progress = lerp(live.current.progress, p, 0.14); // a touch of inertia
-    const { katana, redGlow, view, canvas } = r.scene;
-    const { w: W, h: H } = view;
-    const pose = katanaPose(live.current.progress, W / H < 1);
-    const scale = (pose.len * W) / TOTAL_LEN;
+    k.claim(OWNER, r.pin);
+    const { scene } = k;
+    const { katana, view } = scene;
+    const previous = state.progress;
+    state.progress = lerp(state.progress, p, 0.14); // a touch of inertia
+    const q = state.progress;
+    state.velocity = lerp(state.velocity, q - previous, 0.3);
+
+    // it keeps turning on its own; back in the hero it settles to where it started
+    const weight = idleWeight(q);
+    if (weight > 0.001) state.idle -= dt * 0.00045 * weight;
+    else state.idle += (Math.round(state.idle / TURN) * TURN - state.idle) * 0.08;
+
+    const aspect = view.w / view.h;
+    const pose = stagePose(q, aspect, state.idle);
     const slideIn = (1 - introE) * 0.9; // intro: glides in from the right
-    const bob = Math.sin(time * 0.0011) * 0.006;
+    pose.x += slideIn + (mouse.sx * 0.12) / view.w;
+    pose.y += Math.sin(time * 0.0011) * 0.006 + slideIn * 0.4 - (mouse.sy * 0.08) / view.h;
+    pose.ry += mouse.sx * 0.1 - slideIn * 0.5;
+    pose.roll += mouse.sy * 0.12;
+    katana.saya.visible = true;
+    const scale = placeKatana(scene, pose);
+    animateGlow(scene, scale, time);
 
-    // the whole katana
-    katana.root.scale.setScalar(scale);
-    katana.root.position.set(
-      (pose.x + slideIn) * W + mouse.sx * 0.12,
-      (pose.y + bob + slideIn * 0.4) * H - mouse.sy * 0.08,
-      0
-    );
-    katana.root.rotation.set(
-      pose.rx + mouse.sy * 0.12 + Math.sin(time * 0.0007) * 0.03,
-      pose.ry + mouse.sx * 0.1 - slideIn * 0.5,
-      pose.rz
-    );
+    // motion trail behind the scabbard while it tumbles
+    const trail = Math.sin(Math.PI * pose.saya.parted) * Math.min(1, Math.abs(state.velocity) * 500);
+    katana.ghosts.forEach((ghost, i) => {
+      const alpha = trail * (0.34 - i * 0.09);
+      ghost.setOpacity(alpha);
+      if (alpha <= 0.004) return;
+      const earlier = stagePose(q - Math.sign(state.velocity) * (i + 1) * 0.007, aspect, state.idle);
+      placeSaya(ghost.group, earlier.roll, earlier.saya);
+    });
 
-    // The scabbard, relative to the sword. Drawing slides it along the arc of
-    // the blade (a rotation about the curve's centre), so it stays wrapped
-    // around the steel until the tip is out. Scrolling back re-sheathes it
-    // along the same path.
-    const angle = -(pose.draw * DRAW_DISTANCE) / SORI_RADIUS;
-    const arcX = SORI_RADIUS * Math.sin(angle);
-    const arcY = SORI_RADIUS * (1 - Math.cos(angle));
-    // Once clear it parts from the blade: it drops first, then drifts across,
-    // so its mouth never clips the tip.
-    const across = pose.parted * pose.parted;
-    const down = 1 - (1 - pose.parted) * (1 - pose.parted);
-    const freeX = ((pose.sayaX - pose.x) * W) / scale;
-    const freeY = ((pose.sayaY - pose.y + Math.sin(time * 0.0009 + 1.7) * 0.004 * pose.parted) * H) / scale;
-    katana.saya.position.set(lerp(arcX, freeX, across), lerp(arcY, freeY, down), 0);
-    katana.saya.rotation.z = angle * (1 - down);
-
-    katana.saya.getWorldPosition(glowAnchor);
-    redGlow.position.set(glowAnchor.x - 1.2 * scale, glowAnchor.y + 0.5 * scale, 1.6 * scale);
-    redGlow.intensity = 7 * scale * scale * (0.85 + Math.sin(time * 0.004) * 0.15);
-    redGlow.distance = 9 * scale;
-    katana.lacquer.emissiveIntensity = 1.5 + Math.sin(time * 0.003) * 0.35;
-    canvas.style.opacity = String(1 - at(PHASE.glFade));
-    r.scene.render();
+    k.setOpacity(1 - at(PHASE.glFade));
+    scene.render();
   });
 
   const toProgress = (p: number, seconds: number) => {
@@ -211,19 +249,24 @@ export function Stage({ ready }: { ready: boolean }) {
       <div className="pin">
         <img className="ink-tree" src={images.inkTree} alt="" />
         <canvas className="mosaic" />
-        <canvas className="gl" />
+        {/* the shared WebGL canvas is parked here while this section is on screen */}
 
         <Hero onNext={() => toProgress(NEXT_STOP, 2.6)} />
 
-        <p className="line line-1" aria-label="Draw the Blade">
-          <SplitChars text="Draw the Blade" />
-        </p>
-        <p className="line line-2" aria-label="The Steel Awakens">
-          <SplitChars text="The Steel Awakens" />
-        </p>
+        {LINES.map((text) => (
+          <p className="line mid" aria-label={text} key={text}>
+            <SplitChars text={text} />
+          </p>
+        ))}
 
         <Dialog onSkip={skip} />
         <canvas className="wipe" />
+
+        {AFTER.map((text) => (
+          <p className="line after" aria-label={text} key={text}>
+            <SplitChars text={text} />
+          </p>
+        ))}
       </div>
     </section>
   );

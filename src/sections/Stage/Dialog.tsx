@@ -1,9 +1,18 @@
 import { images } from '../../assets/images';
 
-const LINE =
-  'So, the steel called and you answered. A blade is only as sharp as the hand that guides it — move slowly, and watch.';
+type Part = { text: string; mark?: boolean };
 
-/** The master's line. Characters are switched on one by one as the page scrolls. */
+/** The master speaks twice. `mark` highlights the words he leans on. */
+const LINES: Part[][] = [
+  [{ text: 'So, the ' }, { text: 'steel called', mark: true }, { text: ' and you answered. Good.' }],
+  [
+    { text: 'A blade is only as sharp as the ' },
+    { text: 'hand that guides it', mark: true },
+    { text: ' — so move slowly, and watch it come home.' },
+  ],
+];
+
+/** Characters are switched on one by one as the page scrolls. */
 export function Dialog({ onSkip }: { onSkip: () => void }) {
   return (
     <div className="dialog">
@@ -12,13 +21,19 @@ export function Dialog({ onSkip }: { onSkip: () => void }) {
         <figcaption className="mono">MASTER SEI</figcaption>
       </figure>
       <div className="dialog-body">
-        <p className="dialog-text" aria-label={LINE}>
-          {[...LINE].map((char, i) => (
-            <i key={i} aria-hidden="true">
-              {char}
-            </i>
+        <div className="dialog-lines">
+          {LINES.map((parts, n) => (
+            <p className="dialog-text" aria-label={parts.map((part) => part.text).join('')} key={n}>
+              {parts.map((part, j) =>
+                [...part.text].map((char, i) => (
+                  <i className={part.mark ? 'mark' : undefined} aria-hidden="true" key={`${j}-${i}`}>
+                    {char}
+                  </i>
+                ))
+              )}
+            </p>
           ))}
-        </p>
+        </div>
         <div className="dialog-bar">
           <i />
         </div>

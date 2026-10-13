@@ -7,6 +7,8 @@ import { Cards } from './sections/Cards/Cards';
 import { Craft } from './sections/Craft/Craft';
 import { Footer } from './sections/Footer/Footer';
 import { Garden } from './sections/Garden/Garden';
+import { Principles } from './sections/Principles/Principles';
+import { Quote } from './sections/Quote/Quote';
 import { Stage } from './sections/Stage/Stage';
 
 const PRELOAD = Object.values(images);
@@ -28,8 +30,10 @@ export function App() {
       <main id="top">
         <Stage ready={ready} />
         <Garden />
-        <Craft />
+        <Quote />
+        <Principles />
         <Cards />
+        <Craft />
         <Footer />
       </main>
     </>

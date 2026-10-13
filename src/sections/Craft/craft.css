@@ -1,10 +1,10 @@
-.craft { height: calc(var(--vh) * 380); position: relative; background: var(--paper); color: var(--ink); }
+.craft { height: calc(var(--vh) * 470); position: relative; background: var(--paper); color: var(--ink); }
 .craft .pin { background: var(--paper); }
 .craft .pin > * { position: absolute; }
 .craft-title { left: var(--col); top: clamp(64px, calc(var(--vh) * 9.5), 120px); font-size: clamp(36px, 5.5vw, 112px); font-weight: 500; line-height: .88; letter-spacing: -.04em; }
 .craft-note { left: 63vw; top: calc(var(--vh) * 21); color: rgba(16, 18, 22, .75); }
 .craft-big { left: 0; right: 0; top: 49%; height: 0; }
-.craft-big span { position: absolute; left: 50%; top: 0; translate: -50% -50%; font-size: clamp(80px, 15vw, 300px); font-weight: 500; letter-spacing: -.06em; line-height: 1; opacity: 0; will-change: opacity, filter, transform; }
+.craft-big > span { position: absolute; left: 50%; top: 0; translate: -50% -50%; font-size: clamp(80px, 15vw, 300px); font-weight: 500; letter-spacing: -.06em; line-height: 1; white-space: nowrap; color: #6b6d72; will-change: transform; }
 .craft-cols { left: 8.5vw; right: 8.5vw; bottom: calc(var(--vh) * 9); display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 4.2vw, 80px); }
 .craft-cols li { opacity: .16; transition: opacity .5s, transform .6s cubic-bezier(.2, .8, .2, 1); transform: translateY(8px); }
 .craft-cols li.on { opacity: 1; transform: none; }

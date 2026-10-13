@@ -1,0 +1,25 @@
+.principles { position: relative; background: var(--paper); color: var(--ink); padding: calc(var(--vh) * 18) var(--pad) calc(var(--vh) * 24); overflow: clip; }
+.principles-head { position: relative; text-align: center; }
+.principles-title {
+  font-size: clamp(64px, 17.5vw, 360px); font-weight: 500; line-height: .9; letter-spacing: -.055em;
+}
+/* each character carries the gradient itself: a clipped background does not reach inline-block children */
+.principles-title .ch { background: linear-gradient(180deg, #b9b9b6 6%, #5c5d60 46%, var(--ink) 82%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.principles-echo { position: absolute; left: 0; right: 0; top: 0; font-size: clamp(64px, 17.5vw, 360px); font-weight: 500; line-height: .9; letter-spacing: -.055em; color: rgba(16, 18, 22, .12); opacity: 0; transform-origin: 50% 100%; pointer-events: none; will-change: transform, opacity; }
+
+.principles-list { position: relative; height: calc(var(--vh) * 150); margin-top: calc(var(--vh) * 8); }
+.principle { position: absolute; display: flex; gap: clamp(12px, 1.4vw, 24px); align-items: flex-start; }
+.principle h3 { font-size: clamp(18px, 2.05vw, 38px); font-weight: 400; line-height: 1; letter-spacing: -.03em; color: #55575c; }
+.principle p { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 13ch)); gap: 14px; font-size: clamp(9px, .72vw, 12px); line-height: 1.3; color: rgba(16, 18, 22, .6); }
+.principle-dots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; width: clamp(18px, 1.7vw, 30px); padding-top: .35em; }
+.principle-dots[data-count='1'] { grid-template-columns: 1fr; }
+.principle-dots[data-count='3'] i:first-child { grid-column: 1 / -1; justify-self: center; width: 50%; }
+.principle-dots[data-count='9'] { grid-template-columns: repeat(3, 1fr); gap: 2px; }
+.principle-dots i { aspect-ratio: 1; border-radius: 50%; background: #55575c; }
+.principle-dots[data-count='9'] i:nth-child(even) { background: var(--red); border-radius: 20%; }
+.principle-dots[data-count='1'] i { background: none; border: 2px solid #55575c; box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 20px #55575c; }
+.principle-1 { left: 16%; top: 0; }
+.principle-2 { left: 37%; top: 16%; }
+.principle-3 { left: 9%; top: 42%; }
+.principle-4 { left: 26%; top: 66%; }
+.principle-5 { left: 60%; top: 50%; }

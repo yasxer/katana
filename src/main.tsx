@@ -6,6 +6,7 @@ import './styles/base.css';
 import { App } from './App';
 import { trackViewport } from './lib/viewport';
 import { ScrollProvider } from './scroll/ScrollProvider';
+import { KatanaProvider } from './three/KatanaProvider';
 import './styles/responsive.css';
 
 trackViewport();
@@ -13,7 +14,9 @@ trackViewport();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ScrollProvider>
-      <App />
+      <KatanaProvider>
+        <App />
+      </KatanaProvider>
     </ScrollProvider>
   </StrictMode>
 );

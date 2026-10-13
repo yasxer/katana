@@ -1,8 +1,8 @@
 @media (max-width: 760px) {
   :root { --col: var(--pad); }
-  .hero-title { top: 84px; }
+  .hero-title-stack { top: 84px; }
   .hero-chip { display: none; }
-  .hero-word { bottom: calc(var(--vh) * 17); }
+  .hero-word-stack { bottom: calc(var(--vh) * 17); }
   .bubble { right: var(--pad); bottom: calc(var(--vh) * 7); }
   .bubble-avatar { display: none; }
   .hero-meta { display: none; }
@@ -19,9 +19,11 @@
   .card-b { grid-column: 1 / -1; grid-row: 2; }
   .card-c { grid-column: 2; grid-row: 1; margin: 0; }
   .cards-foot { position: static; margin-top: 30px; text-align: left; }
-  .foot-top { grid-template-columns: 1fr; row-gap: 40px; }
   .foot-cols { grid-template-columns: 1fr; gap: 28px; }
   .foot-meta { grid-template-columns: 1fr 1fr; row-gap: 12px; }
-  .foot-hex { width: 54vw; bottom: -18vw; }
+  .foot-stone-wrap { width: 78vw; }
+  .principles-list { height: auto; display: grid; gap: 44px; }
+  .principle { position: static; }
+  .quote-text { padding: 0 var(--pad); }
   .ruler { display: none; }
 }
