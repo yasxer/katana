@@ -12,18 +12,33 @@ export function useFitText(ref: RefObject<HTMLElement | null>, fraction: (vw: nu
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let fittedWidth = 0;
+
+    // Scales from the size the text already has, in one write. The element is
+    // never shrunk to a probe size first: on phones that briefly shortened the
+    // page, and at the very bottom the browser answered by scrolling up.
     const fit = () => {
       const source = (measure && el.querySelector(measure)) || el;
-      el.style.fontSize = '100px';
       const range = document.createRange();
       range.selectNodeContents(source);
       const width = range.getBoundingClientRect().width;
+      const current = parseFloat(getComputedStyle(el).fontSize);
+      if (!width || !current) return;
       const vw = window.innerWidth;
-      if (width > 0) el.style.fontSize = `${((vw * fractionRef.current(vw)) / width) * 100}px`;
+      const next = (current * vw * fractionRef.current(vw)) / width;
+      if (Math.abs(next - current) > 0.5) el.style.fontSize = `${next.toFixed(2)}px`;
+      fittedWidth = vw;
     };
+
+    // Mobile browsers fire `resize` every time the address bar slides in or
+    // out. Only the height changes then, and the fit depends on width alone.
+    const onResize = () => {
+      if (window.innerWidth !== fittedWidth) fit();
+    };
+
     fit();
     document.fonts?.ready.then(fit);
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, [ref, measure]);
 }

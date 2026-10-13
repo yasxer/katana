@@ -5,6 +5,7 @@ import { SplitChars } from '../../components/SplitChars';
 import { queryChars, setChars } from '../../lib/chars';
 import { clamp, easeOut, lerp, seg, smooth } from '../../lib/math';
 import { Mosaic } from '../../lib/Mosaic';
+import { viewportHeight } from '../../lib/viewport';
 import { pinProgress, useBounds, useFrame, useScroll } from '../../scroll/ScrollProvider';
 import { createScene, type KatanaScene } from '../../three/createScene';
 import { DRAW_DISTANCE, SORI_RADIUS, TOTAL_LEN } from '../../three/katana';
@@ -83,10 +84,13 @@ export function Stage({ ready }: { ready: boolean }) {
       live.current.mouse.x = event.clientX / window.innerWidth - 0.5;
       live.current.mouse.y = event.clientY / window.innerHeight - 0.5;
     };
-    window.addEventListener('resize', onResize);
+    // follow the pinned frame itself: it only changes size on a real resize,
+    // not when a phone's address bar moves
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(one('.pin'));
     window.addEventListener('pointermove', onPointer);
     return () => {
-      window.removeEventListener('resize', onResize);
+      resizeObserver.disconnect();
       window.removeEventListener('pointermove', onPointer);
       rig.current = null;
       scene.dispose();
@@ -195,11 +199,11 @@ export function Stage({ ready }: { ready: boolean }) {
 
   const toProgress = (p: number, seconds: number) => {
     const b = bounds.current;
-    scrollTo(b.top + (b.height - window.innerHeight) * p, seconds);
+    scrollTo(b.top + (b.height - viewportHeight()) * p, seconds);
   };
   const skip = () => {
     const garden = document.getElementById('garden');
-    if (garden) scrollTo(garden.offsetTop + window.innerHeight * 0.5);
+    if (garden) scrollTo(garden.offsetTop + viewportHeight() * 0.5);
   };
 
   return (

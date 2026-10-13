@@ -6,6 +6,8 @@
   --pale: #d2dbf2;
   --fg: #eef1f8;
   --ink: #101216;
+  /* 1% of the locked viewport height, kept in sync by lib/viewport.ts — use instead of the vh unit */
+  --vh: 1vh;
   --pad: clamp(16px, 2.3vw, 44px);
   --col: 14.5vw;
   --sans: 'Inter Tight Variable', 'Helvetica Neue', Helvetica, Arial, sans-serif;

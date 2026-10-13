@@ -1,6 +1,7 @@
 import Lenis from 'lenis';
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import { clamp, easeInOut } from '../lib/math';
+import { viewportHeight } from '../lib/viewport';
 
 export interface Frame {
   /** rAF timestamp in ms */
@@ -8,6 +9,7 @@ export interface Frame {
   /** current scroll position in px */
   y: number;
   vw: number;
+  /** locked viewport height (see lib/viewport.ts), not the live one */
   vh: number;
   velocity: number;
   /** 0 → 1 across the whole document */
@@ -41,13 +43,12 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
     let raf = 0;
     const loop = (time: number) => {
       lenis.raf(time);
-      const vh = window.innerHeight;
-      const max = document.documentElement.scrollHeight - vh;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
       const y = window.scrollY;
       const frame: Frame = {
         time,
         y,
-        vh,
+        vh: viewportHeight(),
         vw: window.innerWidth,
         velocity: lenis.velocity,
         progress: max > 0 ? clamp(y / max) : 0,

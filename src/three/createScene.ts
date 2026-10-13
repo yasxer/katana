@@ -31,10 +31,15 @@ export function createScene(canvas: HTMLCanvasElement) {
   /** Size of the visible area at the katana's depth, in world units. */
   const view = { w: 1, h: 1 };
 
+  const size = { w: 0, h: 0 };
+
   function resize() {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    if (!w || !h) return;
+    // skip no-op resizes (mobile address bar): resetting the buffer would flash a blank frame
+    if (!w || !h || (w === size.w && h === size.h)) return;
+    size.w = w;
+    size.h = h;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();

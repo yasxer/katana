@@ -2,19 +2,19 @@
   :root { --col: var(--pad); }
   .hero-title { top: 84px; }
   .hero-chip { display: none; }
-  .hero-word { bottom: 17vh; }
-  .bubble { right: var(--pad); bottom: 7vh; }
+  .hero-word { bottom: calc(var(--vh) * 17); }
+  .bubble { right: var(--pad); bottom: calc(var(--vh) * 7); }
   .bubble-avatar { display: none; }
   .hero-meta { display: none; }
   .dialog { width: 88vw; }
   .ink-tree { left: 0; width: 100vw; }
-  .maple { height: 62vh; right: -30vw; }
-  .bamboo { left: 2vw; height: 44vh; }
-  .craft-note { left: var(--pad); top: auto; bottom: 46vh; }
-  .craft-cols { grid-template-columns: 1fr 1fr; left: var(--pad); right: var(--pad); bottom: 5vh; }
+  .maple { height: calc(var(--vh) * 62); right: -30vw; }
+  .bamboo { left: 2vw; height: calc(var(--vh) * 44); }
+  .craft-note { left: var(--pad); top: auto; bottom: calc(var(--vh) * 46); }
+  .craft-cols { grid-template-columns: 1fr 1fr; left: var(--pad); right: var(--pad); bottom: calc(var(--vh) * 5); }
   .cards-head { display: block; margin-left: 0; }
   .cards-head p { margin-top: 14px; }
-  .cards-grid { grid-template-columns: 1fr 1fr; row-gap: 20px; margin-top: 10vh; }
+  .cards-grid { grid-template-columns: 1fr 1fr; row-gap: 20px; margin-top: calc(var(--vh) * 10); }
   .card-a { grid-column: 1; margin: 0; }
   .card-b { grid-column: 1 / -1; grid-row: 2; }
   .card-c { grid-column: 2; grid-row: 1; margin: 0; }

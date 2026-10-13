@@ -18,8 +18,12 @@ export class Mosaic {
 
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.w = this.canvas.clientWidth;
-    this.h = this.canvas.clientHeight;
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    // nothing to rebuild when only the mobile address bar moved
+    if (w === this.w && h === this.h) return;
+    this.w = w;
+    this.h = h;
     this.canvas.width = Math.round(this.w * dpr);
     this.canvas.height = Math.round(this.h * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

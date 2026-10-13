@@ -4,8 +4,11 @@ import '@fontsource-variable/inter-tight';
 import '@fontsource-variable/jetbrains-mono';
 import './styles/base.css';
 import { App } from './App';
+import { trackViewport } from './lib/viewport';
 import { ScrollProvider } from './scroll/ScrollProvider';
 import './styles/responsive.css';
+
+trackViewport();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
